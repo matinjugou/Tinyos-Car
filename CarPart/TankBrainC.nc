@@ -1,6 +1,8 @@
 #include "TankMessage.h"
 #include "CommandNode.h"
 
+#define MIDANGLE 3000
+
 module TankBrainC {
 	uses interface Boot;
 	uses interface Leds;
@@ -27,6 +29,7 @@ implementation {
 	message_t spkt;
 
 	bool excuting;
+	uint16_t initStep;
 	uint16_t cmdHead;
 	uint16_t cmdTail;
 	CommandNode CmdQueue[128];
@@ -35,6 +38,8 @@ implementation {
 		cmdHead = 0;
 		cmdTail = 0;
 		excuting = FALSE;
+		initStep = 0;
+		call Car.start();
 		call RadioControl.start();
 		call SerialControl.start();
 		call Car.InitMaxSpeed(3000);
@@ -42,43 +47,92 @@ implementation {
 	}
 
 	event void clockTimer.fired() {
+		if (initStep == 1)
+		{
+			call clockTimer.stop();
+			call Car.InitAngle_Second(MIDANGLE);
+		}
+		else if (initStep == 2) {
+			call clockTimer.stop();
+			call Car.InitAngle_Third(MIDANGLE);
+		}
 
 	}
 
 	void ExcuteCommand() {
-		call Leds.led1Toggle();
 		if (CmdQueue[cmdHead].action == 1) {
 			excuting = TRUE;
+			call Leds.led0On();
+			call Leds.led1Off();
+			call Leds.led2Off();
 			call Car.Angle(CmdQueue[cmdHead].data);
 		}
 		else if (CmdQueue[cmdHead].action == 2) {
 			excuting = TRUE;
+			call Leds.led0Off();
+			call Leds.led1On();
+			call Leds.led2Off();
 			call Car.Forward(CmdQueue[cmdHead].data);
 		}
 		else if (CmdQueue[cmdHead].action == 3) {
 			excuting = TRUE;
+			call Leds.led0On();
+			call Leds.led1On();
+			call Leds.led2Off();
 			call Car.Back(CmdQueue[cmdHead].data);
 		}
 		else if (CmdQueue[cmdHead].action == 4) {
 			excuting = TRUE;
+			call Leds.led0Off();
+			call Leds.led1Off();
+			call Leds.led2On();
 			call Car.Left(CmdQueue[cmdHead].data);
 		}
 		else if (CmdQueue[cmdHead].action == 5) {
 			excuting = TRUE;
+			call Leds.led0On();
+			call Leds.led1Off();
+			call Leds.led2On();
 			call Car.Right(CmdQueue[cmdHead].data);
 		}
 		else if (CmdQueue[cmdHead].action == 6) {
 			excuting = TRUE;
+			call Leds.led0Off();
+			call Leds.led1On();
+			call Leds.led2On();
 			call Car.Pause();
 		}
 		else if (CmdQueue[cmdHead].action == 7) {
 			excuting = TRUE;
+			call Leds.led0On();
+			call Leds.led1On();
+			call Leds.led2On();
 			call Car.Angle_Second(CmdQueue[cmdHead].data);
 		}
 		else if (CmdQueue[cmdHead].action == 8) {
 			excuting = TRUE;
+			call Leds.led0On();
+			call Leds.led1On();
+			call Leds.led2On();
 			call Car.Angle_Third(CmdQueue[cmdHead].data);
 		}
+		else if (CmdQueue[cmdHead].action == 9) {
+			excuting = TRUE;
+			call Leds.led0On();
+			call Leds.led1On();
+			call Leds.led2On();
+			call Car.InitAngle(MIDANGLE);
+		}
+	}
+
+	event error_t Car.InitAngleDone() {
+		initStep = 1;
+		call clockTimer.startPeriodic(100);
+	}
+
+	event error_t Car.InitAngle_SecondDone() {
+		initStep = 2;
+		call clockTimer.startPeriodic(100);
 	}
 
 	event void RadioControl.startDone(error_t err) {
@@ -119,16 +173,15 @@ implementation {
 		}
 		if (!excuting) {
 			ExcuteCommand();
-		}
-
-		call Leds.led2Toggle();
-		
-		
+		}		
 		return msg;
 	}
 
 	event void Car.operationDone(uint8_t type) {
 		TankMsg* sndPck;
+		call Leds.led0Off();
+		call Leds.led1Off();
+		call Leds.led2Off();
 		
 		sndPck = (TankMsg*)(call Packet.getPayload(&pkt, sizeof(TankMsg)));
 		if (sndPck == NULL) {
@@ -145,7 +198,7 @@ implementation {
 		}
 		
 		cmdHead = (cmdHead + 1) % 128;
-		if (cmdHead != cmdTail) {
+		if ((cmdHead != cmdTail) && (!excuting)) {
 			ExcuteCommand();
 		}
 		else {

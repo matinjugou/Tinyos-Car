@@ -4,6 +4,7 @@ implementation {
 	components TankBrainC as App;
 	components ActiveMessageC;
 	components new TimerMilliC() as clockTimer;
+	components new TimerMilliC() as interTimer;
 	components SerialActiveMessageC;
 
 	App.Boot -> MainC;
@@ -18,6 +19,7 @@ implementation {
 
 	App.SPacket -> SerialActiveMessageC;
 	App.SAMSend -> SerialActiveMessageC.AMSend[AM_TANKMSG];
+
 
 	App.RadioControl -> ActiveMessageC;
 	App.SerialControl -> SerialActiveMessageC;

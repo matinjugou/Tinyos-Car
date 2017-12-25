@@ -3,6 +3,7 @@
 #define MAXSPEED 3000
 #define MINSPEED 500
 #define MAXANGLE 4500
+#define MIDANGLE 4500
 #define MINANGLE 500
 
 module RemoteC {
@@ -29,13 +30,18 @@ module RemoteC {
 
 implementation {
 	bool pinA;
+	bool oldpinA;
 	bool pinB;
 	bool pinC;
+	bool oldpinC;
 	bool pinD;
 	bool pinE;
+	bool oldpinE;
 	bool pinF;
 	uint16_t Xvalue;
+	uint16_t oldXvalue;
 	uint16_t Yvalue;
+	uint16_t oldYvalue;
 
 	bool ADone;
 	bool BDone;
@@ -52,6 +58,7 @@ implementation {
 	message_t spkt;
 
 	bool stopped;
+	bool initing;
 	uint16_t currentSpeed;
 	uint16_t initPos1;
 	uint16_t initPos2;
@@ -88,16 +95,20 @@ implementation {
 	}
 
 	void make_operation() {
-		if ((!pinA) || (!pinB) || (!pinC) 
-			|| (!pinE) || (!pinF)
+		if ((pinA != oldpinA) || (!pinB) || (pinC != oldpinC) 
+			|| (pinE != oldpinE) || (!pinF)
 			|| (Xvalue == 0xfff) || (Xvalue == 0x000)
 			|| (Yvalue == 0xfff) || (Yvalue == 0x000)) {
 			call Leds.led2Toggle();
-			//action_type = 2;
-			//action_data = 500;
-
-			//Angle1 add angle
-			if ((pinA) && (!pinB) && (pinC) 
+			if (!pinC) {
+				initPos1 = MIDANGLE;
+				initPos2 = MIDANGLE;
+				initPos3 = MIDANGLE;
+				action_type = 9;
+				action_data = MIDANGLE;
+				send_command();
+			}
+			else if ((pinA) && (!pinB) && (pinC) 
 				&& (pinE) && (pinF)
 				&& (Xvalue == 0x000)) {
 				if (initPos1 + stepAngle < MAXANGLE) {
@@ -123,7 +134,7 @@ implementation {
 			}
 			else if ((pinA) && (pinB) && (pinC) // Angle2 add angle 
 				&& (pinE) && (!pinF)
-				&& (Xvalue == 0x000)) {
+				&& (Yvalue == 0x000)) {
 				if (initPos2 + stepAngle < MAXANGLE) {
 					initPos2 += stepAngle;
 				}
@@ -135,7 +146,7 @@ implementation {
 			}
 			else if ((pinA) && (pinB) && (pinC) // Angle2 minus angle 
 				&& (pinE) && (!pinF)
-				&& (Xvalue == 0xfff)) {
+				&& (Yvalue == 0xfff)) {
 				if (initPos2 - stepAngle > MINANGLE) {
 					initPos2 -= stepAngle;
 				}
@@ -171,14 +182,14 @@ implementation {
 			}
 			else if ((pinB) && (pinF)) {
 				// accelerate
-				if ((!pinA) && (pinC)) {
-					if (currentSpeed + 10 < MAXSPEED) {
-						currentSpeed += 10;
+				if ((!pinA) && (pinE)) {
+					if (currentSpeed + 20 < MAXSPEED) {
+						currentSpeed += 20;
 					}
 				}
 				else if ((pinA) && (!pinE)) {
-					if (currentSpeed - 10 > MINSPEED) {
-						currentSpeed -= 10;
+					if (currentSpeed - 20 > MINSPEED) {
+						currentSpeed -= 20;
 					}
 				}
 				if ((Yvalue == 0x000) && (Xvalue != 0x000) 
@@ -214,12 +225,17 @@ implementation {
 					}
 				}
 			}
+			oldpinA = pinA;
+			oldpinC = pinC;
+			oldpinE = pinE;
+			stopped = FALSE;
 		}
 		else {
 			if (!stopped) {
 				action_type = 6;
 				if (!busy) {
 					send_command();
+					call Leds.led0Toggle();
 				}
 			}
 		}
@@ -237,11 +253,15 @@ implementation {
 
 	event void Boot.booted() {
 		stopped = TRUE;
+		initing = FALSE;
 		currentSpeed = 500;
 		initPos1 = 3000;
 		initPos2 = 3000;
 		initPos3 = 3000;
-		stepAngle = 50;
+		stepAngle = 300;
+		oldpinA = TRUE;
+		oldpinC = TRUE;
+		oldpinE = TRUE;
 		call Button.start();
 		call RadioControl.start();
 		call SerialControl.start();
@@ -261,7 +281,7 @@ implementation {
 			call SerialControl.start();
 		}
 		else {
-			call checkTimer.startPeriodic(30);
+			call checkTimer.startPeriodic(150);
 		}
 	}
 
@@ -290,8 +310,12 @@ implementation {
 		TankMsg* rcvPck;
 		rcvPck = (TankMsg*)payload;
 		if ((rcvPck->nodeid != TOS_NODE_ID) && (rcvPck->type == 1)) {
-			if (rcvPck->action == 6) {
+			if ((rcvPck->action == 6) || (rcvPck->action == 1) || 
+				(rcvPck->action == 7) || (rcvPck->action == 8) || (rcvPck->action == 9)) {
 				stopped = TRUE;
+			}
+			else {
+				stopped = FALSE;
 			}
 		}
 		return msg;

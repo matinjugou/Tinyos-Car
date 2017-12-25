@@ -43,20 +43,18 @@ implementation {
 	event void SerialControl.stopDone(error_t err) {}
 
 	event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len) {
-		DebugMsg* rcvPayload;
-		DebugMsg* ssndPck;
+		TankMsg* rcvPayload;
+		TankMsg* ssndPck;
 
 		call Leds.led0Toggle();
 
-		rcvPayload = (DebugMsg*)payload;
-		ssndPck = (DebugMsg*)(call SPacket.getPayload(&spkt, sizeof(DebugMsg)));
-		ssndPck->pinA = rcvPayload->pinA;
-		ssndPck->pinB = rcvPayload->pinB;
-		ssndPck->pinC = rcvPayload->pinC;
-		ssndPck->pinD = rcvPayload->pinD;
-		ssndPck->pinE = rcvPayload->pinE;
-		ssndPck->pinF = rcvPayload->pinF;
-		if (call SAMSend.send(AM_BROADCAST_ADDR, &spkt, sizeof(DebugMsg)) == SUCCESS) {
+		rcvPayload = (TankMsg*)payload;
+		ssndPck = (TankMsg*)(call SPacket.getPayload(&spkt, sizeof(TankMsg)));
+		ssndPck->nodeid = rcvPayload->nodeid;
+		ssndPck->type = rcvPayload->type;
+		ssndPck->action = rcvPayload->action;
+		ssndPck->data = rcvPayload->data;
+		if (call SAMSend.send(AM_BROADCAST_ADDR, &spkt, sizeof(TankMsg)) == SUCCESS) {
 			Sbusy = TRUE;
 		}
 

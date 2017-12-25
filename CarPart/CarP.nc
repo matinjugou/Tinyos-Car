@@ -37,6 +37,7 @@ implementation {
 	uint8_t next_op_type;
 	uint16_t next_op_data;
 	uint16_t maxspeed, minspeed;
+	uint16_t initing;
 
 	uint16_t step;
 
@@ -90,6 +91,7 @@ implementation {
 	async event void HplMsp430UsartInterrupts.txDone() {}
 
     command void Car.start() {
+    	initing = FALSE;
         return;
     }
 
@@ -160,9 +162,12 @@ implementation {
 	}
 
 	command error_t Car.Pause() {
-		next_op_type = 6;
-		next_op_data = 0x00;
-		call Resource.request();
+		if (!initing)
+		{
+			next_op_type = 6;
+			next_op_data = 0x00;
+			call Resource.request();
+		}
 	}
 
 	command error_t Car.InitMaxSpeed(uint16_t value) {
@@ -177,5 +182,28 @@ implementation {
 		next_op_type = 0xd;
 		next_op_data = minspeed;
 		call Resource.request();
+	}
+
+	command error_t Car.InitAngle(uint16_t value) {
+		initing = TRUE;
+		next_op_type = 1;
+		next_op_data = value;
+		call Resource.request();
+		signal Car.InitAngleDone();
+	}
+
+	command error_t Car.InitAngle_Second(uint16_t value) {
+		next_op_type = 7;
+		next_op_data = value;
+		call Resource.request();
+		signal Car.InitAngle_SecondDone();
+	}
+
+	command error_t Car.InitAngle_Third(uint16_t value) {
+		next_op_type = 8;
+		next_op_data = value;
+		call Resource.request();
+		initing = FALSE;
+		signal Car.operationDone(9);
 	}   
 }

@@ -42,7 +42,7 @@ implementation {
 		call Car.start();
 		call RadioControl.start();
 		call SerialControl.start();
-		call Car.InitMaxSpeed(3000);
+		call Car.InitMaxSpeed(600);
 		call Car.InitMinSpeed(200);
 	}
 
@@ -98,8 +98,8 @@ implementation {
 		else if (CmdQueue[cmdHead].action == 6) {
 			excuting = TRUE;
 			call Leds.led0Off();
-			call Leds.led1On();
-			call Leds.led2On();
+			call Leds.led1Off();
+			call Leds.led2Off();
 			call Car.Pause();
 		}
 		else if (CmdQueue[cmdHead].action == 7) {
@@ -179,9 +179,6 @@ implementation {
 
 	event void Car.operationDone(uint8_t type) {
 		TankMsg* sndPck;
-		call Leds.led0Off();
-		call Leds.led1Off();
-		call Leds.led2Off();
 		
 		sndPck = (TankMsg*)(call Packet.getPayload(&pkt, sizeof(TankMsg)));
 		if (sndPck == NULL) {

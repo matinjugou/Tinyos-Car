@@ -172,14 +172,14 @@ implementation {
 
 	command error_t Car.InitMaxSpeed(uint16_t value) {
 		maxspeed = value;
-		next_op_type = 0xc;
+		next_op_type = 0x0c;
 		next_op_data = maxspeed;
 		call Resource.request();
 	}
 
 	command error_t Car.InitMinSpeed(uint16_t value) {
 		minspeed = value;
-		next_op_type = 0xd;
+		next_op_type = 0x0d;
 		next_op_data = minspeed;
 		call Resource.request();
 	}

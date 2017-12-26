@@ -1,7 +1,7 @@
 #include "TankMessage.h"
 
-#define MAXSPEED 3000
-#define MINSPEED 500
+#define MAXSPEED 600
+#define MINSPEED 200
 #define MAXANGLE 4500
 #define MIDANGLE 4500
 #define MINANGLE 500
